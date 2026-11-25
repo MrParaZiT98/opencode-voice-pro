@@ -1,46 +1,57 @@
 {
-  "name": "@renjfk/opencode-voice",
+  "name": "opencode-voice-pro",
   "version": "0.1.0",
-  "description": "Speech-to-text and text-to-speech for OpenCode. Record voice prompts with whisper-cpp, hear responses via Piper TTS, with LLM normalization through any OpenAI-compatible endpoint.",
+  "description": "Windows-first Persian voice dictation for OpenCode Desktop using Cloudflare Workers AI with local Whisper fallback.",
   "keywords": [
     "opencode",
-    "piper",
     "plugin",
     "speech-to-text",
     "stt",
-    "text-to-speech",
-    "tts",
     "voice",
     "whisper"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/renjfk/opencode-voice.git"
+    "url": "git+https://github.com/MrParaZiT98/opencode-voice-pro.git"
   },
   "files": [
-    "index.js",
-    "lib"
+    "server.js",
+    "dist",
+    "cloudflare-worker",
+    "scripts",
+    "README.fa.md",
+    "UPSTREAM.md"
   ],
   "type": "module",
-  "main": "index.js",
+  "main": "server.js",
   "exports": {
-    "./tui": {
-      "import": "./index.js"
-    }
+    ".": "./server.js",
+    "./gui-experimental": "./dist/gui-experimental.cjs"
   },
   "scripts": {
-    "lint": "npx oxlint .",
-    "fmt": "npx oxfmt --check .",
-    "fmt:fix": "npx oxfmt --write .",
+    "lint": "oxlint .",
+    "fmt": "oxfmt --check src/gui.tsx src/voice cloudflare-worker/src/index.ts cloudflare-worker/wrangler.jsonc test/normalizer.test.js test/device.test.js server.js vite.config.ts",
+    "fmt:fix": "oxfmt --write src/gui.tsx src/voice cloudflare-worker/src/index.ts cloudflare-worker/wrangler.jsonc test/normalizer.test.js test/device.test.js server.js vite.config.ts",
     "test": "node --test",
-    "check": "npm run lint && npm run fmt",
-    "prepack": "npm run check"
+    "check": "npm run lint && npm run fmt && npm run typecheck",
+    "build:gui": "vite build",
+    "dev:gui": "vite build --watch",
+    "worker:deploy": "npx --yes wrangler@4.168.0 deploy --config cloudflare-worker/wrangler.jsonc",
+    "worker:dev": "npx --yes wrangler@4.168.0 dev --config cloudflare-worker/wrangler.jsonc",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
-    "@opencode/plugin": "^2.2.1",
-    "oxfmt": "0.50.0",
-    "oxlint": "1.65.0",
-    "solid-js": "^1.9.0"
+    "@opencode/plugin": "^2.4.1",
+    "@types/node": "^26.6.10",
+    "oxfmt": "^0.80.0",
+    "oxlint": "^1.95.0",
+    "solid-js": "^1.9.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.7",
+    "vite-plugin-solid": "^2.11.10"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }
