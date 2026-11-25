@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import { VoiceIpc } from "./ipc";
 import { selectMicrophoneDevice } from "./device.js";
 import { normalizeTranscript } from "./normalizer.js";
+import { isLocalOnlyMode, normalizeTranscriptionMode } from "./mode.js";
 import { getEstimatedUsage, recordEstimatedUsage } from "./quota";
 
 function jsonResult(state, message, text = "", source = "") {
@@ -77,11 +78,14 @@ class VoiceEngine {
   busy: boolean;
   preferredMicrophone: string;
   microphoneStore: { value: string; set: (value: string) => void };
+  transcriptionMode: string;
+  transcriptionModeStore: { value: string; set: (value: string) => void };
 
   constructor(
     options: Record<string, any>,
     log: { write: (...args: any[]) => void },
     microphoneStore: { value: string; set: (value: string) => void },
+    transcriptionModeStore: { value: string; set: (value: string) => void },
   ) {
     this.options = options ?? {};
     this.log = log;
@@ -93,9 +97,21 @@ class VoiceEngine {
     this.recordingStderr = "";
     this.busy = false;
     this.microphoneStore = microphoneStore;
+    this.transcriptionModeStore = transcriptionModeStore;
+    this.transcriptionMode = normalizeTranscriptionMode(transcriptionModeStore.value);
     this.preferredMicrophone = String(
       this.options.microphone || process.env.OPENCODE_VOICE_MIC || microphoneStore.value || "",
     ).trim();
+  }
+
+  async setTranscriptionMode(mode: string) {
+    if (mode !== "auto" && mode !== "local") {
+      throw new Error("حالت پردازش صوتی نامعتبر است.");
+    }
+    this.transcriptionMode = mode;
+    this.transcriptionModeStore.set(mode);
+    this.log?.write("info", "Voice transcription mode changed", { mode });
+    return mode;
   }
 
   async setMicrophone(name: string) {
@@ -140,6 +156,7 @@ class VoiceEngine {
       ? selectMicrophoneDevice(devices, requestedMicrophone)
       : null;
     return {
+      transcriptionMode: this.transcriptionMode,
       cloudflareConfigured: Boolean(workerUrl && workerToken),
       localReady: existsSync(whisperCli) && existsSync(model),
       vadReady: existsSync(vadModel),
@@ -369,17 +386,21 @@ class VoiceEngine {
       }
 
       let text = "";
-      let source = "cloudflare";
+      let source = isLocalOnlyMode(this.transcriptionMode) ? "local" : "cloudflare";
       let cloudError = "";
-      try {
-        text = await this.transcribeCloudflare(wavFile);
-      } catch (error) {
-        cloudError = error.message;
-        this.log?.write("warn", "Cloudflare transcription failed; switching to local Whisper", {
-          error: cloudError,
-        });
-        source = "local";
+      if (source === "local") {
         text = await this.transcribeLocal(wavFile);
+      } else {
+        try {
+          text = await this.transcribeCloudflare(wavFile);
+        } catch (error) {
+          cloudError = error.message;
+          this.log?.write("warn", "Cloudflare transcription failed; switching to local Whisper", {
+            error: cloudError,
+          });
+          source = "local";
+          text = await this.transcribeLocal(wavFile);
+        }
       }
 
       if (!String(text || "").trim()) {
@@ -409,7 +430,9 @@ class VoiceEngine {
       return jsonResult(
         "transcribed",
         source === "local"
-          ? `Cloudflare در دسترس نبود؛ متن با Whisper محلی تولید شد. ${cloudError}`
+          ? isLocalOnlyMode(this.transcriptionMode)
+            ? "دیکته به‌صورت آفلاین با Whisper محلی انجام شد."
+            : `Cloudflare در دسترس نبود؛ متن با Whisper محلی تولید شد. ${cloudError}`
           : "متن آماده درج در Composer است.",
         normalized,
         source,
@@ -456,13 +479,19 @@ class VoiceEngine {
 
 export const setupVoiceMain: Plugin.MainSetup = (ctx) => {
   const microphoneStore = ctx.storage.store("microphone", { schema: Schema.String, initial: "" });
-  const engine = new VoiceEngine(ctx.options, ctx.log, microphoneStore);
+  const initialMode = ctx.options?.transcriptionMode === "local" ? "local" : "auto";
+  const transcriptionModeStore = ctx.storage.store("transcriptionMode", {
+    schema: Schema.String,
+    initial: initialMode,
+  });
+  const engine = new VoiceEngine(ctx.options, ctx.log, microphoneStore, transcriptionModeStore);
   ctx.provide(VoiceIpc, {
     toggle: async () => engine.toggle(),
     cancel: async () => engine.cancel(),
     listDevices: async () =>
       JSON.stringify(await engine.listDevices().catch((error) => ({ error: error.message }))),
     setMicrophone: async (name: string) => engine.setMicrophone(name),
+    setTranscriptionMode: async (mode: string) => engine.setTranscriptionMode(mode),
     status: async () => JSON.stringify(await engine.status()),
   });
   return () => void engine.dispose();

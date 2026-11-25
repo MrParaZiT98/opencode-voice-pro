@@ -11,10 +11,11 @@
 - شروع و توقف دیکته با Ctrl+D و لغو ضبط با Esc
 - انتخاب میکروفون در اولین استفاده و ذخیره انتخاب برای دفعات بعد
 - ضبط ویندوز با FFmpeg و DirectShow با فرمت WAV تک‌کاناله 16kHz
-- موتور آنلاین Cloudflare Workers AI با مدل @cf/openai/whisper-large-v3-turbo
+- انتخاب بین Cloudflare Workers AI با مدل @cf/openai/whisper-large-v3-turbo و حالت کاملاً آفلاین
+- حالت فقط محلی با whisper.cpp و CUDA و Silero VAD؛ در این حالت هیچ ارتباطی با Cloudflare برقرار نمی‌شود و صدا آپلود نمی‌شود
+- حالت خودکار ابتدا Cloudflare را امتحان می‌کند و در صورت قطعی، خطای Worker یا اتمام سهمیه به Whisper محلی برمی‌گردد
 - تشخیص فارسی با راهنمای زبان fa و واژگان تخصصی برنامه‌نویسی
 - اصلاح متن فارسی با قواعد مشخص و بدون LLM
-- پشتیبان محلی whisper.cpp با CUDA و Silero VAD هنگام قطعی اینترنت، خطای Worker یا اتمام سهمیه
 - درج متن در Composer برای بازبینی؛ ارسال خودکار انجام نمی‌شود
 - حذف فایل صوتی موقت پس از تبدیل موفق؛ نگهداری فایل ناموفق برای بازیابی
 
@@ -24,7 +25,7 @@
 - OpenCode Desktop با پشتیبانی GUI Plugin
 - Node.js نسخه 22 یا جدیدتر
 - کارت گرافیک NVIDIA سازگار با CUDA برای موتور پشتیبان محلی
-- حساب Cloudflare برای استقرار Worker اختصاصی خودتان
+- حساب Cloudflare فقط برای حالت آنلاین و اختیاری است؛ برای حالت آفلاین نیازی به آن ندارید
 
 ## نصب
 
@@ -50,9 +51,11 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 این اسکریپت FFmpeg، نسخه CUDA از whisper.cpp، مدل چندزبانه Large-v3-Turbo Q5 و مدل Silero VAD را دریافت و نصب می‌کند. دانلودها حجیم هستند؛ فضای دیسک و زمان کافی در نظر بگیرید.
 
-### ۳. راه‌اندازی Cloudflare اختصاصی
+### ۳. اختیاری: راه‌اندازی Cloudflare Workers AI
 
-هر کاربر باید Worker خودش را در حساب Cloudflare خودش مستقر کند. از ریشه پروژه اجرا کنید:
+اگر می‌خواهید OpenCode Voice را کاملاً آفلاین استفاده کنید، این مرحله را رد کنید. حالت آفلاین به حساب Cloudflare، آدرس Worker یا Token نیاز ندارد.
+
+برای حالت خودکار (Cloudflare با پشتیبان محلی)، هر کاربر Worker خودش را در حساب Cloudflare خودش مستقر می‌کند. از ریشه پروژه اجرا کنید:
 
 ```powershell
 npx --yes wrangler@4.168.0 login
@@ -70,14 +73,16 @@ npm run worker:deploy
 %USERPROFILE%\.config\opencode\opencode.json
 ```
 
-مسیر محلی پروژه را به آرایه plugins اضافه کنید؛ افزونه‌های قبلی خود را حذف نکنید:
+مسیر محلی پروژه را به آرایه plugins اضافه کنید؛ افزونه‌های قبلی خود را حذف نکنید. برای نصب کاملاً آفلاین، مقدار `transcriptionMode` را روی `local` قرار دهید؛ برای حالت Cloudflare با پشتیبان محلی، مقدار `auto` را بگذارید یا این گزینه را حذف کنید:
 
 ```json
 {
   "plugins": [
     {
       "package": "C:\\path\\to\\opencode-voice-pro",
-      "options": {}
+      "options": {
+        "transcriptionMode": "local"
+      }
     }
   ]
 }
@@ -92,13 +97,14 @@ OpenCode Desktop را ببندید و دوباره اجرا کنید. در او�
 - Ctrl+D: شروع یا توقف دیکته
 - Esc: لغو ضبط فعال
 - Command Palette → Choose microphone: تغییر میکروفون
-- Command Palette → Voice engine status: بررسی وضعیت Cloudflare، Whisper، VAD، میکروفون و مصرف تخمینی
+- Command Palette → Choose transcription mode: انتخاب حالت خودکار یا فقط محلی (آفلاین)
+- Command Palette → Voice engine status: بررسی حالت انتخاب‌شده، Cloudflare، Whisper، VAD، میکروفون و مصرف تخمینی
 
 متن تشخیص‌داده‌شده در Composer قرار می‌گیرد؛ قبل از ارسال آن را بازبینی کنید.
 
 ## نکته هزینه Cloudflare
 
-برای پردازش آنلاین فقط از Worker اختصاصی شما استفاده می‌شود و در صورت عدم دسترسی یا اتمام سهمیه، برنامه به Whisper محلی برمی‌گردد. برای جلوگیری از هزینه ناخواسته، حساب Cloudflare را روی پلن Free نگه دارید و پرداخت اضافه (Paid overages) را فعال نکنید. شمارنده مصرف داخل برنامه تخمینی است؛ داشبورد Cloudflare مرجع نهایی مصرف است.
+Cloudflare اختیاری است. در حالت فقط محلی، صدا با whisper.cpp روی کامپیوتر خودتان پردازش می‌شود و هیچ صدایی به Cloudflare ارسال نمی‌شود؛ بنابراین به حساب یا Worker کلادفلر نیازی ندارید. در حالت خودکار، ابتدا از Worker اختصاصی شما استفاده می‌شود و در صورت عدم دسترسی یا اتمام سهمیه، برنامه به Whisper محلی برمی‌گردد. برای جلوگیری از هزینه ناخواسته، حساب Cloudflare را روی پلن Free نگه دارید و پرداخت اضافه (Paid overages) را فعال نکنید. شمارنده مصرف داخل برنامه تخمینی است؛ داشبورد Cloudflare مرجع نهایی مصرف است.
 
 ## توسعه و اجرای تست‌ها
 

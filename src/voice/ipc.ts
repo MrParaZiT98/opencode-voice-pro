@@ -8,6 +8,7 @@ export const VoiceIpc = Ipc.define({
     cancel: { output: Schema.Boolean },
     listDevices: { output: Schema.String },
     setMicrophone: { input: Schema.String, output: Schema.String },
+    setTranscriptionMode: { input: Schema.String, output: Schema.String },
     status: { output: Schema.String },
   },
 });

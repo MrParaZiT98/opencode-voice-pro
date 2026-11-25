@@ -89,4 +89,5 @@ Write-Host "Silero VAD model: $vadModel" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "Runtime installation complete. Restart OpenCode Desktop to load the new environment variables." -ForegroundColor Green
-Write-Host "A microphone check and Cloudflare Worker secret setup are still required."
+Write-Host "Choose Local only (offline) in the OpenCode Voice command palette to use Whisper without Cloudflare."
+Write-Host "Cloudflare Worker setup is optional and only needed for Automatic mode."

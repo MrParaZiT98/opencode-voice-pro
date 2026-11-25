@@ -25,6 +25,14 @@ export default Plugin.define({
       "command.devices.description": "Show available Windows audio input devices",
       "command.microphone": "Choose microphone",
       "command.microphone.description": "Choose or change the voice input device",
+      "command.mode": "Choose transcription mode",
+      "command.mode.description": "Use Cloudflare with local fallback, or run fully offline",
+      "mode.auto": "Automatic (Cloudflare + local fallback)",
+      "mode.auto.description":
+        "Use Cloudflare Workers AI when configured; otherwise fall back to local Whisper",
+      "mode.local": "Local only (offline)",
+      "mode.local.description":
+        "Transcribe on this PC with Whisper.cpp; no Cloudflare setup or upload",
       "command.status": "Voice engine status",
       "command.status.description": "Show Cloudflare, local fallback, microphone, and usage status",
       "titlebar.ready": "Dictate",
@@ -38,6 +46,14 @@ export default Plugin.define({
       "command.devices.description": "نمایش دستگاه‌های ورودی صوتی ویندوز",
       "command.microphone": "انتخاب میکروفون",
       "command.microphone.description": "انتخاب یا تغییر میکروفون دیکته صوتی",
+      "command.mode": "انتخاب حالت پردازش صدا",
+      "command.mode.description": "استفاده از Cloudflare با پشتیبان محلی یا اجرای کاملاً آفلاین",
+      "mode.auto": "خودکار (Cloudflare با پشتیبان محلی)",
+      "mode.auto.description":
+        "در صورت پیکربندی از Cloudflare استفاده می‌کند و در غیر این صورت به Whisper محلی برمی‌گردد",
+      "mode.local": "فقط محلی (آفلاین)",
+      "mode.local.description":
+        "پردازش صدا روی همین کامپیوتر با Whisper؛ بدون نیاز به Cloudflare و ارسال صدا",
       "command.status": "وضعیت موتور صوتی",
       "command.status.description": "نمایش وضعیت کلادفلر، موتور محلی، میکروفون و سهمیه تخمینی",
       "titlebar.ready": "دیکته صوتی",
@@ -88,6 +104,46 @@ export default Plugin.define({
       const status = JSON.parse(await voice.status());
       if (status.selectedMicrophone) return true;
       return chooseMicrophone();
+    };
+
+    const chooseTranscriptionMode = async () => {
+      try {
+        const status = JSON.parse(await voice.status());
+        const selected = await ctx.dialogs.select({
+          title: ctx.t("command.mode"),
+          placeholder: "انتخاب حالت پردازش...",
+          current: status.transcriptionMode || "auto",
+          options: [
+            {
+              title: ctx.t("mode.auto"),
+              value: "auto",
+              description: ctx.t("mode.auto.description"),
+            },
+            {
+              title: ctx.t("mode.local"),
+              value: "local",
+              description: ctx.t("mode.local.description"),
+            },
+          ],
+        });
+        if (!selected) return;
+        await voice.setTranscriptionMode(selected);
+        if (selected === "local" && !status.localReady) {
+          notify(
+            "حالت آفلاین انتخاب شد؛ برای استفاده ابتدا اسکریپت scripts\\install-windows.ps1 را اجرا کن.",
+            "default",
+          );
+          return;
+        }
+        notify(
+          selected === "local"
+            ? "حالت فقط محلی فعال شد؛ هیچ صدایی به Cloudflare ارسال نمی‌شود."
+            : "حالت خودکار فعال شد؛ Cloudflare در اولویت و Whisper پشتیبان است.",
+          "success",
+        );
+      } catch (error) {
+        notify(String(error), "error");
+      }
     };
 
     const toggle = async () => {
@@ -202,6 +258,21 @@ export default Plugin.define({
       Command,
       () =>
         ({
+          id: "choose-transcription-mode",
+          title: ctx.t("command.mode"),
+          description: ctx.t("command.mode.description"),
+          group: "OpenCode Voice",
+          section: "general",
+          run: () => {
+            void chooseTranscriptionMode();
+          },
+        }) as const,
+    );
+
+    ctx.add(
+      Command,
+      () =>
+        ({
           id: "show-status",
           title: ctx.t("command.status"),
           description: ctx.t("command.status.description"),
@@ -211,18 +282,23 @@ export default Plugin.define({
             try {
               const status = JSON.parse(await voice.status());
               const usage = status.estimatedUsage || {};
+              const usageLine =
+                status.transcriptionMode === "local"
+                  ? "Cloudflare usage: Not applicable (local-only mode)"
+                  : `Estimated Neurons today: ${Number(usage.estimatedNeurons || 0).toFixed(0)} / 10000`;
               const devices = Array.isArray(status.microphoneDevices)
                 ? status.microphoneDevices.join(", ")
                 : status.microphoneDevices?.error || "None";
               const lines = [
-                `Cloudflare Workers AI: ${status.cloudflareConfigured ? "Ready" : "Secret setup required"}`,
+                `Transcription mode: ${status.transcriptionMode === "local" ? "Local only (offline)" : "Automatic (Cloudflare + local fallback)"}`,
+                `Cloudflare Workers AI: ${status.cloudflareConfigured ? "Ready" : "Not configured (optional)"}`,
                 `Local Whisper CUDA: ${status.localReady ? "Ready" : "Missing"}`,
                 `Silero VAD: ${status.vadReady ? "Ready" : "Missing"}`,
                 "Selected microphone: " +
                   (status.selectedMicrophone || "Configured microphone not found"),
                 "Microphone selection: " + (status.microphoneReady ? "Ready" : "Not found"),
                 `Microphones: ${devices}`,
-                `Estimated Neurons today: ${Number(usage.estimatedNeurons || 0).toFixed(0)} / 10000`,
+                usageLine,
               ];
               notify(lines.join("\n"));
             } catch (error) {

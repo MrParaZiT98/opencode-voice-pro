@@ -1,7 +1,7 @@
 {
   "name": "opencode-voice-pro",
   "version": "0.1.0",
-  "description": "Windows-first Persian voice dictation for OpenCode Desktop using Cloudflare Workers AI with local Whisper fallback.",
+  "description": "Windows-first Persian voice dictation for OpenCode Desktop with Cloudflare online mode and fully offline Whisper transcription.",
   "keywords": [
     "opencode",
     "plugin",
