@@ -106,7 +106,13 @@ jobs:
         run: npm pack --dry-run
 
       - name: Publish to npm
-        run: npm publish --access public
+        run: |
+          PACKAGE_VERSION="${{ needs.prepare.outputs.version }}"
+          if npm view "opencode-voice-pro@$PACKAGE_VERSION" version >/dev/null 2>&1; then
+            echo "opencode-voice-pro@$PACKAGE_VERSION is already published; skipping."
+          else
+            npm publish --access public
+          fi
 
       - name: Download release notes
         uses: actions/download-artifact@v4
