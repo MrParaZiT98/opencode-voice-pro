@@ -8,10 +8,10 @@ Each user should deploy a separate Worker in their own Cloudflare account.
 
 From the repository root:
 
-~~~powershell
+```powershell
 npx --yes wrangler@4.168.0 login
 npm run worker:deploy
-~~~
+```
 
 Wrangler prints the deployed Worker URL. Keep that URL; the configuration script will ask for it.
 
@@ -19,10 +19,10 @@ Wrangler prints the deployed Worker URL. Keep that URL; the configuration script
 
 Still from the repository root, run:
 
-~~~powershell
+```powershell
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\configure-cloudflare.ps1
-~~~
+```
 
 Enter the Worker URL ending in /transcribe when prompted. The script generates a random bearer secret, uploads it to the Worker as VOICE_AUTH_TOKEN, and stores the matching URL and token in Windows user-level environment variables. It does not print the token or write it into the repository.
 

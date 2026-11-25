@@ -31,21 +31,21 @@ A Windows-focused fork and extension of [renjfk/opencode-voice](https://github.c
 
 ### 1. Clone the repository and build the GUI bundle
 
-~~~powershell
+```powershell
 git clone https://github.com/MrParaZiT98/opencode-voice-pro.git
 cd opencode-voice-pro
 npm ci
 npm run build:gui
-~~~
+```
 
 ### 2. Install the local speech runtime
 
 Run PowerShell from the repository root:
 
-~~~powershell
+```powershell
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\install-windows.ps1
-~~~
+```
 
 The script installs FFmpeg (using WinGet if needed), the whisper.cpp Windows CUDA runtime, the multilingual Large-v3-Turbo Q5 model, and the Silero VAD model. Downloads are large; allow time and disk space.
 
@@ -53,11 +53,11 @@ The script installs FFmpeg (using WinGet if needed), the whisper.cpp Windows CUD
 
 Each user should deploy a Worker in their own Cloudflare account. From the repository root:
 
-~~~powershell
+```powershell
 npx --yes wrangler@4.168.0 login
 npm run worker:deploy
 .\scripts\configure-cloudflare.ps1
-~~~
+```
 
 Copy the Worker URL printed by Wrangler when prompted by the configuration script. The script creates a random bearer secret, uploads it to your Worker, and stores the URL and secret in your Windows user environment. It does not write credentials to this repository.
 
@@ -67,13 +67,13 @@ Restart OpenCode Desktop after the script completes.
 
 Open:
 
-~~~text
+```text
 %USERPROFILE%\.config\opencode\opencode.json
-~~~
+```
 
 Add the local project path to the existing plugins array (do not replace your other plugins):
 
-~~~json
+```json
 {
   "plugins": [
     {
@@ -82,7 +82,7 @@ Add the local project path to the existing plugins array (do not replace your ot
     }
   ]
 }
-~~~
+```
 
 Replace the example path with the actual folder where you cloned the repository. If your config already has a plugins array, add this object to that array.
 
@@ -103,12 +103,12 @@ The project uses only your own Cloudflare Worker for online transcription and fa
 
 ## Development
 
-~~~powershell
+```powershell
 npm ci
 npm test
 npm run check
 npm run build:gui
-~~~
+```
 
 ## Upstream and license
 

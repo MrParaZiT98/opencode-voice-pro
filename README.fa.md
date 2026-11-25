@@ -32,21 +32,21 @@
 
 PowerShell را باز کنید:
 
-~~~powershell
+```powershell
 git clone https://github.com/MrParaZiT98/opencode-voice-pro.git
 cd opencode-voice-pro
 npm ci
 npm run build:gui
-~~~
+```
 
 ### ۲. نصب موتور صوتی محلی
 
 از ریشه پروژه اجرا کنید:
 
-~~~powershell
+```powershell
 Set-ExecutionPolicy -Scope Process Bypass
 .\scripts\install-windows.ps1
-~~~
+```
 
 این اسکریپت FFmpeg، نسخه CUDA از whisper.cpp، مدل چندزبانه Large-v3-Turbo Q5 و مدل Silero VAD را دریافت و نصب می‌کند. دانلودها حجیم هستند؛ فضای دیسک و زمان کافی در نظر بگیرید.
 
@@ -54,11 +54,11 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 هر کاربر باید Worker خودش را در حساب Cloudflare خودش مستقر کند. از ریشه پروژه اجرا کنید:
 
-~~~powershell
+```powershell
 npx --yes wrangler@4.168.0 login
 npm run worker:deploy
 .\scripts\configure-cloudflare.ps1
-~~~
+```
 
 پس از Deploy، آدرس Worker که Wrangler نمایش می‌دهد را هنگام اجرای اسکریپت پیکربندی وارد کنید. اسکریپت یک رمز تصادفی تولید می‌کند، آن را به‌صورت Secret در Worker ذخیره می‌کند و آدرس و رمز را در متغیرهای محیطی ویندوز ثبت می‌کند. این اطلاعات نباید در GitHub یا فایل‌های پروژه قرار بگیرند.
 
@@ -66,13 +66,13 @@ npm run worker:deploy
 
 فایل تنظیمات زیر را باز کنید:
 
-~~~text
+```text
 %USERPROFILE%\.config\opencode\opencode.json
-~~~
+```
 
 مسیر محلی پروژه را به آرایه plugins اضافه کنید؛ افزونه‌های قبلی خود را حذف نکنید:
 
-~~~json
+```json
 {
   "plugins": [
     {
@@ -81,7 +81,7 @@ npm run worker:deploy
     }
   ]
 }
-~~~
+```
 
 مسیر نمونه را با مسیر واقعی پوشه‌ای که پروژه را در آن Clone کرده‌اید جایگزین کنید. اگر آرایه plugins از قبل وجود دارد، فقط همین شیء را به آن اضافه کنید.
 
@@ -102,12 +102,12 @@ OpenCode Desktop را ببندید و دوباره اجرا کنید. در او�
 
 ## توسعه و اجرای تست‌ها
 
-~~~powershell
+```powershell
 npm ci
 npm test
 npm run check
 npm run build:gui
-~~~
+```
 
 ## پروژه اصلی و مجوز
 
