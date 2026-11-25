@@ -93,7 +93,14 @@ jobs:
       - run: npm install
 
       - name: Set package version
-        run: npm version "${{ needs.prepare.outputs.version }}" --no-git-tag-version
+        run: |
+          RELEASE_VERSION="${{ needs.prepare.outputs.version }}"
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          if [ "$CURRENT_VERSION" != "$RELEASE_VERSION" ]; then
+            npm version "$RELEASE_VERSION" --no-git-tag-version
+          else
+            echo "Package version is already $RELEASE_VERSION; skipping."
+          fi
 
       - name: Verify package
         run: npm pack --dry-run
